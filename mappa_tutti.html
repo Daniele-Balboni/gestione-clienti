@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mappa Completa</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        #map {
+            width: 100%;
+            height: 450px;
+            border-radius: 14px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Mappa Completa</h1>
+
+<div class="card">
+    <label>Filtra per ruolo</label>
+    <select id="filtro" onchange="mostraMappa()">
+        <option value="">Tutti</option>
+        <option value="Progettista">Progettista</option>
+        <option value="Installatore">Installatore</option>
+        <option value="Edile">Edile</option>
+        <option value="Canalista">Canalista</option>
+        <option value="General Contractor">General Contractor</option>
+        <option value="Rivenditore">Rivenditore</option>
+    </select>
+</div>
+
+<div id="map"></div>
+
+<button onclick="torna()">Torna al database</button>
+
+<script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxL4HD7DaYk0h9yAy2nYIRDscTOFt9lF5QnwaFBGl79huKFPThuys45VNN8IdVRz6e5fw/exec";
+
+    let clienti = [];
+    let map = null;
+    let markers = [];
+
+    async function carica() {
+        const res = await fetch(API_URL);
+        const text = await res.text();
+        clienti = text ? JSON.parse(text) : [];
+        mostraMappa();
+    }
+
+    async function geocodifica(indirizzo) {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(indirizzo)}`;
+        const res = await fetch(url);
+        return await res.json();
+    }
+
+    async function mostraMappa() {
+        const filtro = document.getElementById("filtro").value;
+
+        if (!map) {
+            map = L.map('map').setView([44.4949, 11.3426], 11); // Bologna centro
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19
+            }).addTo(map);
+        }
+
+        markers.forEach(m => map.removeLayer(m));
+        markers = [];
+
+        for (let i = 0; i < clienti.length; i++) {
+            const c = clienti[i];
+
+            if (filtro && c.ruolo !== filtro) continue;
+
+            const data = await geocodifica(c.indirizzo);
+            if (data.length === 0) continue;
+
+            const coords = [data[0].lat, data[0].lon];
+
+            const marker = L.marker(coords).addTo(map);
+            marker.bindPopup(`
+                <strong>${c.nome}</strong><br>
+                ${c.indirizzo}<br>
+                <button onclick="apri(${i})">Apri scheda</button><br>
+                <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.indirizzo)}" target="_blank">Naviga</a>
+            `);
+
+            markers.push(marker);
+        }
+    }
+
+    function apri(i) {
+        window.location.href = `cliente.html?id=${i}`;
+    }
+
+    function torna() {
+        window.location.href = "index.html";
+    }
+
+    carica();
+</script>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+</body>
+</html>
