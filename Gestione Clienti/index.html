@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Clienti</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>Database Clienti</h1>
+
+<div class="top-buttons">
+    <button onclick="aggiungiCliente()">Aggiungi Cliente</button>
+    <button onclick="window.location.href='mappa_tutti.html'">Mappa Completa</button>
+    <button onclick="window.location.href='dashboard.html'">Dashboard</button>
+</div>
+
+<div class="card">
+<table id="tabellaClienti">
+    <tr>
+        <th>Ragione Sociale</th>
+        <th>Indirizzo</th>
+        <th>Ruolo</th>
+        <th>Azioni</th>
+    </tr>
+</table>
+</div>
+
+<script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxL4HD7DaYk0h9yAy2nYIRDscTOFt9lF5QnwaFBGl79huKFPThuys45VNN8IdVRz6e5fw/exec";
+
+    let clienti = [];
+
+    async function caricaClienti() {
+        try {
+            const res = await fetch(API_URL);
+            const text = await res.text();
+            clienti = text ? JSON.parse(text) : [];
+            aggiornaTabella();
+        } catch (e) {
+            alert("Errore nel caricamento dei dati");
+        }
+    }
+
+    async function salvaClienti() {
+        await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(clienti)
+        });
+    }
+
+    function aggiornaTabella() {
+        const tabella = document.getElementById("tabellaClienti");
+        tabella.innerHTML = `
+            <tr>
+                <th>Ragione Sociale</th>
+                <th>Indirizzo</th>
+                <th>Ruolo</th>
+                <th>Azioni</th>
+            </tr>
+        `;
+
+        clienti.forEach((c, i) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${c.nome}</td>
+                <td>${c.indirizzo}</td>
+                <td>${c.ruolo || "-"}</td>
+                <td><button onclick="apriScheda(${i})">Apri</button></td>
+            `;
+            tabella.appendChild(row);
+        });
+    }
+
+    async function aggiungiCliente() {
+        const nome = prompt("Inserisci la ragione sociale");
+        const indirizzo = prompt("Inserisci l'indirizzo");
+        if (!nome) return;
+
+        clienti.push({
+            nome,
+            indirizzo,
+            persone: [],
+            telefono: "",
+            email: "",
+            ruolo: "",
+            piva: "",
+            ultimaVisita: ""
+        });
+
+        await salvaClienti();
+        aggiornaTabella();
+    }
+
+    function apriScheda(index) {
+        window.location.href = `cliente.html?id=${index}`;
+    }
+
+    caricaClienti();
+</script>
+
+</body>
+</html>

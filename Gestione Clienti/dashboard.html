@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        canvas {
+            width: 100% !important;
+            max-width: 600px;
+            margin: 0 auto;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Dashboard</h1>
+
+<div class="card">
+    <h2>Totale clienti</h2>
+    <p id="totale" style="font-size: 26px; font-weight: bold; margin-top: 10px;">0</p>
+</div>
+
+<div class="card">
+    <h2>Clienti per ruolo</h2>
+    <canvas id="graficoRuoli"></canvas>
+</div>
+
+<div class="card">
+    <h2>Statistiche visite</h2>
+    <p id="visiteTot"></p>
+    <p id="visite30"></p>
+</div>
+
+<button onclick="torna()">Torna al database</button>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxL4HD7DaYk0h9yAy2nYIRDscTOFt9lF5QnwaFBGl79huKFPThuys45VNN8IdVRz6e5fw/exec";
+
+    let clienti = [];
+
+    async function carica() {
+        const res = await fetch(API_URL);
+        const text = await res.text();
+        clienti = text ? JSON.parse(text) : [];
+
+        mostraTotale();
+        mostraRuoli();
+        mostraVisite();
+    }
+
+    function mostraTotale() {
+        document.getElementById("totale").innerText = clienti.length;
+    }
+
+    function mostraRuoli() {
+        const ruoli = {};
+
+        clienti.forEach(c => {
+            if (!c.ruolo) return;
+            ruoli[c.ruolo] = (ruoli[c.ruolo] || 0) + 1;
+        });
+
+        const ctx = document.getElementById("graficoRuoli");
+
+        new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: Object.keys(ruoli),
+                datasets: [{
+                    label: "Numero clienti",
+                    data: Object.values(ruoli),
+                    backgroundColor: "#dcdcdc",
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    }
+
+    function mostraVisite() {
+        const oggi = new Date();
+        let totVisite = 0;
+        let visite30 = 0;
+
+        clienti.forEach(c => {
+            if (!c.ultimaVisita) return;
+
+            totVisite++;
+
+            const dataVisita = new Date(c.ultimaVisita);
+            const diff = (oggi - dataVisita) / (1000 * 60 * 60 * 24);
+
+            if (diff <= 30) visite30++;
+        });
+
+        document.getElementById("visiteTot").innerText =
+            "Clienti con visita registrata: " + totVisite;
+
+        document.getElementById("visite30").innerText =
+            "Visite negli ultimi 30 giorni: " + visite30;
+    }
+
+    function torna() {
+        window.location.href = "index.html";
+    }
+
+    carica();
+</script>
+
+</body>
+</html>
